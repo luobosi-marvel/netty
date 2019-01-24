@@ -25,9 +25,21 @@ import io.netty.util.internal.StringUtil;
  * Skeletal {@link ByteBufAllocator} implementation to extend.
  */
 public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
+    /**
+     * 初始容量
+     */
     static final int DEFAULT_INITIAL_CAPACITY = 256;
+    /**
+     * 最大容量
+     */
     static final int DEFAULT_MAX_CAPACITY = Integer.MAX_VALUE;
+    /**
+     * 复合 buf 最大组件 buf 数量
+     */
     static final int DEFAULT_MAX_COMPONENTS = 16;
+    /**
+     * 4 Mib page 容量调整阈值
+     */
     static final int CALCULATE_THRESHOLD = 1048576 * 4; // 4 MiB page
 
     static {
@@ -78,6 +90,11 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return buf;
     }
 
+    /**
+     * directByDefault 该字段用来决定分配 buf 是否为 direct 类型还是 heap 类型；
+     *
+     * todo：创建 direct 和 heap buf实际通过newDirectBuffer和newHeapBuffer方法，待子类扩展。
+     */
     private final boolean directByDefault;
     private final ByteBuf emptyBuf;
 
@@ -99,6 +116,11 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         emptyBuf = new EmptyByteBuf(this);
     }
 
+    /**
+     * 创建一个 buffer ，如果 directByDefault 位 true，则创建直接内存，否则创建堆内存
+     *
+     * @return ByteBuf
+     */
     @Override
     public ByteBuf buffer() {
         if (directByDefault) {
@@ -123,8 +145,14 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return heapBuffer(initialCapacity, maxCapacity);
     }
 
+    /**
+     * ioBuffer方法创建的字节buf，优先为direct类型，当系统平台不支持Unsafe时，才为heap类型
+     *
+     * @return ByteBuf
+     */
     @Override
     public ByteBuf ioBuffer() {
+        // 底层平台是否有 Unsafe 对象，如果有，则创建
         if (PlatformDependent.hasUnsafe()) {
             return directBuffer(DEFAULT_INITIAL_CAPACITY);
         }

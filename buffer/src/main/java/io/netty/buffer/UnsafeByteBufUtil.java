@@ -30,11 +30,19 @@ import static io.netty.util.internal.PlatformDependent.BIG_ENDIAN_NATIVE_ORDER;
 
 /**
  * All operations get and set as {@link ByteOrder#BIG_ENDIAN}.
+ *
+ * Unsafe 对象操作工具类（使用内存地址，效率更高）
  */
 final class UnsafeByteBufUtil {
     private static final boolean UNALIGNED = PlatformDependent.isUnaligned();
     private static final byte ZERO = 0;
 
+    /**
+     * 根据内存地址来获取 byte
+     *
+     * @param address 内存地址
+     * @return byte 字节
+     */
     static byte getByte(long address) {
         return PlatformDependent.getByte(address);
     }

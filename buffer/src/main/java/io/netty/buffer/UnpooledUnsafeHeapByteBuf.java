@@ -17,6 +17,11 @@ package io.netty.buffer;
 
 import io.netty.util.internal.PlatformDependent;
 
+/**
+ * 只对包可见（为了保证安全）
+ * 为什么只对包可见？
+ * 底层实际上是利用 UnsafeByteBufUtil 工具来读取数据的
+ */
 class UnpooledUnsafeHeapByteBuf extends UnpooledHeapByteBuf {
 
     /**
