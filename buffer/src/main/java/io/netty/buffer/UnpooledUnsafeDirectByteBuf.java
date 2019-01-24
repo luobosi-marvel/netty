@@ -40,6 +40,11 @@ public class UnpooledUnsafeDirectByteBuf extends AbstractReferenceCountedByteBuf
 
     private ByteBuffer tmpNioBuf;
     private int capacity;
+    /**
+     * todo：是否需要释放内存
+     * 因为堆外内存 JVM 不会自动进行内存回收，需要我们自己手动执行内存回收，不然堆外内存会越来越小
+     * 堆外内存是机器本地内存，使得我们无需将数据从内核态 copy 到用户态，即 0 拷贝。
+     */
     private boolean doNotFree;
     ByteBuffer buffer;
     long memoryAddress;
