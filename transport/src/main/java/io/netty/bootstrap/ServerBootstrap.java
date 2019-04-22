@@ -137,8 +137,21 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         return this;
     }
 
+    /**
+     * TODO：初始化一个 channel
+     * 1.setChannelOptions、setChannelAttrs
+     * 2.setChildOptions、setChildAttrs
+     * 3.config handler[配置服务端 pipeline]
+     * 4.add ServerBootstrapAcceptor[添加连接器]
+     * 总结：保存用户自定义的属性，然后通过这些属性创建一个新的连接器，
+     * 连接接入器每次 accept 新的连接之后，都会使用这些属性对新的连接做一些配置。
+     *
+     * @param channel channel
+     * @throws Exception
+     */
     @Override
     void init(Channel channel) throws Exception {
+        // 设置自定义属性，并绑定到指定 channel 中
         final Map<ChannelOption<?>, Object> options = options0();
         synchronized (options) {
             setChannelOptions(channel, options, logger);
@@ -152,9 +165,9 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 channel.attr(key).set(e.getValue());
             }
         }
-
+        // 获取 channel 里面绑定的 pipeline 对象
         ChannelPipeline p = channel.pipeline();
-
+        // 获取线程组
         final EventLoopGroup currentChildGroup = childGroup;
         final ChannelHandler currentChildHandler = childHandler;
         final Entry<ChannelOption<?>, Object>[] currentChildOptions;

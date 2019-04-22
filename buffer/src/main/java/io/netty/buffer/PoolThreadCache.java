@@ -35,6 +35,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * technics of
  * <a href="https://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919">
  * Scalable memory allocation using jemalloc</a>.
+ *
+ * 每一个线程都会维护的对象。
  */
 final class PoolThreadCache {
 
@@ -367,6 +369,10 @@ final class PoolThreadCache {
         }
     }
 
+    /**
+     * todo：缓存数据结构
+     * @param <T>
+     */
     private abstract static class MemoryRegionCache<T> {
         private final int size;
         private final Queue<Entry<T>> queue;
@@ -409,6 +415,7 @@ final class PoolThreadCache {
                 return false;
             }
             initBuf(entry.chunk, entry.nioBuffer, entry.handle, buf, reqCapacity);
+            // 方便进行复用，回收到对象池中
             entry.recycle();
 
             // allocations is not thread-safe which is fine as this is only called from the same thread all time.

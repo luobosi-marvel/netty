@@ -98,11 +98,15 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * The {@link Class} which is used to create {@link Channel} instances from.
      * You either use this or {@link #channelFactory(io.netty.channel.ChannelFactory)} if your
      * {@link Channel} implementation has no no-args constructor.
+     *
+     * 该方法就是我们用户代码中的 channel 方法，我们会传入一个 Channel 的类类型进来，
+     * Netty 会将我们的 类类型包装成 ReflectiveChannelFactory 工厂类
      */
     public B channel(Class<? extends C> channelClass) {
         if (channelClass == null) {
             throw new NullPointerException("channelClass");
         }
+        // 返回一个工厂类
         return channelFactory(new ReflectiveChannelFactory<C>(channelClass));
     }
 
@@ -186,6 +190,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * Allow to specify an initial attribute of the newly created {@link Channel}.  If the {@code value} is
      * {@code null}, the attribute of the specified {@code key} is removed.
+     *
+     * 给服务端的 channel，也就是 NioServerSocketChannel 指定一些自定义属性，然后我们可以通过 channel.attr() 取出这个属性，
+     * 比如，serverBootstrap.attr(AttributeKey.newInstance("serverName"), "nettyServer") 指定我们服务端 channel 的一个
+     * serverName 属性，属性值为 nettyServer，其实说白了就是给NioServerSocketChannel维护一个map而已。
      */
     public <T> B attr(AttributeKey<T> key, T value) {
         if (key == null) {
@@ -279,8 +287,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        // 创建一个 Channel 并初始化 Channel
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
+        // 如果 cause 不为 null，则说明 channel 创建失败了
         if (regFuture.cause() != null) {
             return regFuture;
         }
@@ -314,10 +324,22 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         }
     }
 
+    /**
+     * TODO: channel 创建和初始化
+     * 反射创建服务端 Channel
+     *
+     * 1.创建 channel
+     * 2.初始化 channel
+     * 3.注册 channel
+     *
+     * @return ChannelFuture
+     */
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            // 创建 NettyChannel
             channel = channelFactory.newChannel();
+            // 初始化 NettyChannel
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {
@@ -330,6 +352,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
+        // todo: 注册 selector
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
@@ -353,12 +376,21 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     abstract void init(Channel channel) throws Exception;
 
+    /**
+     * NioEventLoop 启动入口
+     *
+     * @param regFuture
+     * @param channel
+     * @param localAddress
+     * @param promise
+     */
     private static void doBind0(
             final ChannelFuture regFuture, final Channel channel,
             final SocketAddress localAddress, final ChannelPromise promise) {
 
         // This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
         // the pipeline in its channelRegistered() implementation.
+        // 往 channel 注册的 EventLoop 中提交一个任务（这个任务就是绑定一个端口）
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {

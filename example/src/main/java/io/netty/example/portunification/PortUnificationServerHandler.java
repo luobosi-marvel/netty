@@ -134,6 +134,10 @@ public class PortUnificationServerHandler extends ByteToMessageDecoder {
         p.remove(this);
     }
 
+    /**
+     * todo: 往 pipeline 里面添加 handler
+     * @param ctx
+     */
     private void switchToFactorial(ChannelHandlerContext ctx) {
         ChannelPipeline p = ctx.pipeline();
         p.addLast("decoder", new BigIntegerDecoder());

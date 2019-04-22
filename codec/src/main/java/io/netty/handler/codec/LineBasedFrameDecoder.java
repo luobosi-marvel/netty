@@ -35,14 +35,27 @@ import java.util.List;
  */
 public class LineBasedFrameDecoder extends ByteToMessageDecoder {
 
-    /** Maximum length of a frame we're willing to decode.  */
+    /**
+     * Maximum length of a frame we're willing to decode.
+     *
+     * 虽然是基于行解码器，但是解码的时候还是会有字节限制的，如果解码读取的字节超过了 maxLength，则会把这部分丢弃掉
+     */
     private final int maxLength;
-    /** Whether or not to throw an exception as soon as we exceed maxLength. */
+    /**
+     * 是否快速失败
+     *
+     * 当 true 时，未找到消息，但是超过最大长度，则马上触发 Exception 到下一个节点
+     * 当 false 时，未找到消息，但是超过最大长度，需要匹配到一条消息后，再触发 Exception 到下一个节点
+     *
+     * Whether or not to throw an exception as soon as we exceed maxLength. */
     private final boolean failFast;
     private final boolean stripDelimiter;
 
     /** True if we're discarding input because we're already over maxLength.  */
     private boolean discarding;
+    /**
+     * 记录丢弃的字节数
+     */
     private int discardedBytes;
 
     /** Last scan position. */
@@ -165,6 +178,7 @@ public class LineBasedFrameDecoder extends ByteToMessageDecoder {
      * Returns -1 if no end of line was found in the buffer.
      */
     private int findEndOfLine(final ByteBuf buffer) {
+
         int totalLength = buffer.readableBytes();
         int i = buffer.forEachByte(buffer.readerIndex() + offset, totalLength - offset, ByteProcessor.FIND_LF);
         if (i >= 0) {

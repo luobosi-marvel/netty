@@ -22,6 +22,15 @@ import java.util.Map;
 
 /**
  * Skeleton implementation of a {@link ChannelHandler}.
+ * ChannelHandler 的骨架
+ * 对于大多数的 ChannelHandler 会选择性的拦截和处理某个或者某些事件，其他事件会忽略，由下一个 ChannelHandler 进行拦截和处理。
+ * 这就会导致一个问题：用户 ChannelHandler 必须要实现 ChannelHandler 的所有接口，包括它不关心的那些事件处理接口，这会导致用户
+ * 代码的冗余和臃肿，代码的可维护性也会变差。
+ *
+ * 为了解决这个问题，Netty提供了ChannelHandlerAdapter基类，它的所有接口实现都是事件透传，如果用户ChannelHandler关心某个事件，
+ * 只需要覆盖ChannelHandlerAdapter对应的方法即可，对于不关心的，可以直接继承使用父类的方法，这样子类的代码就会非常简洁和清晰。
+ *
+ * 适配器
  */
 public abstract class ChannelHandlerAdapter implements ChannelHandler {
 
@@ -40,6 +49,9 @@ public abstract class ChannelHandlerAdapter implements ChannelHandler {
     /**
      * Return {@code true} if the implementation is {@link Sharable} and so can be added
      * to different {@link ChannelPipeline}s.
+     * 这里我们会发现，Netty 将 handler 保存到 ThreadLocal 里面，保证性能
+     * TODO：性能优化
+     * 使用 ThreadLocal 缓存 Handler 的状态，高并发海量连接下，每次有新连接添加 Handler 都会创建调用此方法
      */
     public boolean isSharable() {
         /**

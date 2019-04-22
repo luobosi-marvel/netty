@@ -56,6 +56,8 @@ import java.util.concurrent.TimeUnit;
  * bootstrap.childHandler(new MyChannelInitializer());
  * ...
  * </pre>
+ *
+ * 读超时 handler
  * @see WriteTimeoutHandler
  * @see IdleStateHandler
  */
@@ -86,14 +88,17 @@ public class ReadTimeoutHandler extends IdleStateHandler {
 
     @Override
     protected final void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
+        // 必须是读超时事件
         assert evt.state() == IdleState.READER_IDLE;
         readTimedOut(ctx);
     }
 
     /**
      * Is called when a read timeout was detected.
+     * 读超时吹了
      */
     protected void readTimedOut(ChannelHandlerContext ctx) throws Exception {
+        // 如果是读超时
         if (!closed) {
             ctx.fireExceptionCaught(ReadTimeoutException.INSTANCE);
             ctx.close();

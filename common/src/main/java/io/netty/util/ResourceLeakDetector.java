@@ -39,6 +39,16 @@ import static io.netty.util.internal.StringUtil.EMPTY_STRING;
 import static io.netty.util.internal.StringUtil.NEWLINE;
 import static io.netty.util.internal.StringUtil.simpleClassName;
 
+/**
+ * Netty 内存泄漏检查: https://wyj.shiwuliang.com/Netty%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E2%80%94%E2%80%94%E6%B3%84%E9%9C%B2%E6%A3%80%E6%B5%8B.html
+ * this被提前回收的情况及避免措施: https://www.zhihu.com/question/51244545/answer/126055789
+ * 老版本ResourceLeakDetector的BUG: https://ylgrgyq.github.io/2017/11/11/netty-resource-leack-detector/
+ * 第一次修复JIT编译优化导致错误的泄露检测的PR : https://github.com/netty/netty/pull/8422/files
+ * 第二次优化JIT编译优化导致错误的泄露检测的PR: https://github.com/netty/netty/pull/8410
+ * 关于空的synchronized块能否正常工作 : https://stackoverflow.com/questions/686415/in-what-situations-could-an-empty-synchronized-block-achieve-correct-threading-s/31933260#31933260
+ *
+ * @param <T>
+ */
 public class ResourceLeakDetector<T> {
 
     private static final String PROP_LEVEL_OLD = "io.netty.leakDetectionLevel";
@@ -165,7 +175,7 @@ public class ResourceLeakDetector<T> {
 
     /** the collection of active resources */
     private final Set<DefaultResourceLeak<?>> allLeaks =
-            Collections.newSetFromMap(new ConcurrentHashMap<DefaultResourceLeak<?>, Boolean>());
+            Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private final ReferenceQueue<Object> refQueue = new ReferenceQueue<Object>();
     private final ConcurrentMap<String, Boolean> reportedLeaks = PlatformDependent.newConcurrentHashMap();
@@ -498,7 +508,7 @@ public class ResourceLeakDetector<T> {
          */
         private static void reachabilityFence0(Object ref) {
             if (ref != null) {
-                // Empty synchronized is ok: https://stackoverflow.com/a/31933260/1151521
+                // Empty 1` is ok: https://stackoverflow.com/a/31933260/1151521
                 synchronized (ref) { }
             }
         }

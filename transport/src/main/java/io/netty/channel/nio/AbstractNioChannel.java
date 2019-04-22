@@ -195,6 +195,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
     /**
      * Special {@link Unsafe} sub-type which allows to access the underlying {@link SelectableChannel}
+     * NioUnsafe 增加了可以访问底层 JDK 的 SelectableChannel 的功能，定义了 从 SelectableChannel 读取数据的 read 方法
      */
     public interface NioUnsafe extends Unsafe {
         /**
@@ -328,6 +329,11 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             closeIfClosed();
         }
 
+        /**
+         * 调用最后会调用到 pipeline().fireChannelActive(),
+         * 产生一个 inbound 事件, 通知 pipeline 中的各个 handler TCP 通道已建立
+         * (即 ChannelInboundHandler.channelActive 方法会被调用)
+         */
         @Override
         public final void finishConnect() {
             // Note this method is invoked by the event loop only if the connection attempt was

@@ -39,6 +39,8 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         implements ChannelHandlerContext, ResourceLeakHint {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractChannelHandlerContext.class);
+
+    // 串行传播
     volatile AbstractChannelHandlerContext next;
     volatile AbstractChannelHandlerContext prev;
 
@@ -193,6 +195,12 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         return this;
     }
 
+    /**
+     * 事件激活并向后传播
+     * TODO: 疑问：如果发现不是自己关联的 EventLoop 则封装成一个 task，添加到 taskQueue 里面去，这里的 taskQueue 是指当前线程么？
+     *
+     * @param next
+     */
     static void invokeChannelActive(final AbstractChannelHandlerContext next) {
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
@@ -206,6 +214,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
             });
         }
     }
+
 
     private void invokeChannelActive() {
         if (invokeHandler()) {
@@ -786,6 +795,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         }
 
         if (isNotValidPromise(promise, true)) {
+            // todo: 每次 writeAndFlush 后都会把 ByteBuf 给释放掉，千万不要自己再去释放一次会报错
             ReferenceCountUtil.release(msg);
             // cancelled
             return promise;
@@ -809,6 +819,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         AbstractChannelHandlerContext next = findContextOutbound();
         final Object m = pipeline.touch(msg, next);
         EventExecutor executor = next.executor();
+        // 先判断是否是自己的本地线程，如果是则直接执行
         if (executor.inEventLoop()) {
             if (flush) {
                 next.invokeWriteAndFlush(m, promise);
@@ -816,6 +827,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
                 next.invokeWrite(m, promise);
             }
         } else {
+            // 如果不是则封装成 task 丢到 nio 任务队列里面
             final AbstractWriteTask task;
             if (flush) {
                 task = WriteAndFlushTask.newInstance(next, m, promise);
@@ -937,6 +949,13 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         return false;
     }
 
+    // 事件向后传播
+
+    /**
+     * 返回当前 ChannelHandlerContext 的后一个 inbound 类型的 ChannelHandlerContext
+     *
+     * @return ChannelHandlerContext
+     */
     private AbstractChannelHandlerContext findContextInbound() {
         AbstractChannelHandlerContext ctx = this;
         do {
@@ -945,6 +964,11 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         return ctx;
     }
 
+    /**
+     * 找到当前 ChannelHandlerContext 的前面一个 outbound 类型的 ChannelHandlerContext
+     *
+     * @return ChannelHandlerContext
+     */
     private AbstractChannelHandlerContext findContextOutbound() {
         AbstractChannelHandlerContext ctx = this;
         do {

@@ -17,6 +17,8 @@ package io.netty.util.internal.logging;
 
 /**
  * The log level that {@link InternalLogger} can log at.
+ *
+ * 日志级别
  */
 public enum InternalLogLevel {
     /**

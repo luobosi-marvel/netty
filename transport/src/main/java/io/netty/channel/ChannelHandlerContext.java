@@ -121,28 +121,36 @@ import java.nio.channels.Channels;
  * {@link ChannelPipeline} to find out more about inbound and outbound operations,
  * what fundamental differences they have, how they flow in a  pipeline,  and how to handle
  * the operation in your application.
+ *
+ * 通过继承的三个接口，我们可以发现，ChannelHandlerContext 拥有传播读事件和写事件的功能，还可以绑定一些自定义的属性
+ *
  */
 public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvoker, ChannelOutboundInvoker {
 
     /**
      * Return the {@link Channel} which is bound to the {@link ChannelHandlerContext}.
+     * 每个 handler 都要了解自己属于哪个 channel
      */
     Channel channel();
 
     /**
      * Returns the {@link EventExecutor} which is used to execute an arbitrary task.
+     * 是哪个 NioEventLoop 会执行该节点
      */
     EventExecutor executor();
 
     /**
      * The unique name of the {@link ChannelHandlerContext}.The name was used when then {@link ChannelHandler}
      * was added to the {@link ChannelPipeline}. This name can also be used to access the registered
+     * 业务逻辑处理器名称
+     *
      * {@link ChannelHandler} from the {@link ChannelPipeline}.
      */
     String name();
 
     /**
      * The {@link ChannelHandler} that is bound this {@link ChannelHandlerContext}.
+     * 业务逻辑处理器
      */
     ChannelHandler handler();
 
@@ -152,6 +160,9 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
      * {@link EventLoop}.
      */
     boolean isRemoved();
+
+    // 下面几个没有注释的方法就是 inbound 和 outbound 事件传播的方法
+
 
     @Override
     ChannelHandlerContext fireChannelRegistered();
@@ -188,11 +199,13 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
 
     /**
      * Return the assigned {@link ChannelPipeline}
+     * 当前节点属于的 pipeline
      */
     ChannelPipeline pipeline();
 
     /**
      * Return the assigned {@link ByteBufAllocator} which will be used to allocate {@link ByteBuf}s.
+     * ByteBuf 内存分配器
      */
     ByteBufAllocator alloc();
 

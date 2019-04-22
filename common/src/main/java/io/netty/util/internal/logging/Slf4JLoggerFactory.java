@@ -39,6 +39,7 @@ public class Slf4JLoggerFactory extends InternalLoggerFactory {
 
     Slf4JLoggerFactory(boolean failIfNOP) {
         assert failIfNOP; // Should be always called with true.
+        // 判断是否存在 Slf4JLogger，如果不存在则抛出异常
         if (LoggerFactory.getILoggerFactory() instanceof NOPLoggerFactory) {
             throw new NoClassDefFoundError("NOPLoggerFactory not supported");
         }

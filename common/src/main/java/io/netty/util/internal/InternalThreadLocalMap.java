@@ -244,7 +244,7 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
     public Map<Class<?>, TypeParameterMatcher> typeParameterMatcherGetCache() {
         Map<Class<?>, TypeParameterMatcher> cache = typeParameterMatcherGetCache;
         if (cache == null) {
-            typeParameterMatcherGetCache = cache = new IdentityHashMap<Class<?>, TypeParameterMatcher>();
+            typeParameterMatcherGetCache = cache = new IdentityHashMap<>();
         }
         return cache;
     }
@@ -252,7 +252,7 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
     public Map<Class<?>, Map<String, TypeParameterMatcher>> typeParameterMatcherFindCache() {
         Map<Class<?>, Map<String, TypeParameterMatcher>> cache = typeParameterMatcherFindCache;
         if (cache == null) {
-            typeParameterMatcherFindCache = cache = new IdentityHashMap<Class<?>, Map<String, TypeParameterMatcher>>();
+            typeParameterMatcherFindCache = cache = new IdentityHashMap<>();
         }
         return cache;
     }

@@ -130,6 +130,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
             } else {
                 // check if is done as it may was cancelled
                 if (!isCancelled()) {
+                    // TODO: 定时任务具体执行的地方
                     task.call();
                     if (!executor().isShutdown()) {
                         long p = periodNanos;

@@ -17,6 +17,9 @@ package io.netty.util;
 
 import org.junit.Test;
 
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -234,15 +237,24 @@ public class HashedWheelTimerTest {
     public void testOverflow() throws InterruptedException  {
         final HashedWheelTimer timer = new HashedWheelTimer();
         final CountDownLatch latch = new CountDownLatch(1);
-        Timeout timeout = timer.newTimeout(new TimerTask() {
-            @Override
-            public void run(Timeout timeout) {
-                latch.countDown();
-            }
-        }, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+        Timeout timeout = timer.newTimeout(timeout1 -> latch.countDown(), Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         assertFalse(latch.await(1, TimeUnit.SECONDS));
         timeout.cancel();
         timer.stop();
+    }
+
+    @Test
+    public void temp() throws IOException {
+        HashedWheelTimer wheelTimer = new HashedWheelTimer(100, TimeUnit.MILLISECONDS, 16);
+
+        System.out.println(LocalDate.now());
+
+        wheelTimer.newTimeout((timeout) -> {
+            System.out.println(LocalTime.now());
+            System.out.println(timeout);
+        }, 5, TimeUnit.SECONDS);
+
+        System.in.read();
     }
 
     private static TimerTask createNoOpTimerTask() {

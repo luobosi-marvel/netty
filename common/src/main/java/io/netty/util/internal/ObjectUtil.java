@@ -18,6 +18,9 @@ import java.util.Collection;
 
 /**
  * A grab-bag of useful utility methods.
+ *
+ * TODO：参数校验，这里我们可以借鉴
+ * 我们代码里面
  */
 public final class ObjectUtil {
 

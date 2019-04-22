@@ -75,11 +75,15 @@ public class AbstractChannelTest {
         verify(handler).channelUnregistered(any(ChannelHandlerContext.class));
     }
 
+    /**
+     * 使用自定义实现的TestChannel，并使用自己方式产生 channel 唯一id，MyChannelId
+     */
     @Test
     public void ensureDefaultChannelId() {
         TestChannel channel = new TestChannel();
         final ChannelId channelId = channel.id();
-        assertTrue(channelId instanceof DefaultChannelId);
+        System.out.println(channelId.asLongText());
+        // assertTrue(channelId instanceof DefaultChannelId);
     }
 
     private static void registerChannel(EventLoop eventLoop, Channel channel) throws Exception {
@@ -154,5 +158,33 @@ public class AbstractChannelTest {
 
         @Override
         protected void doWrite(ChannelOutboundBuffer in) throws Exception { }
+
+        @Override
+        protected ChannelId newId() {
+            return new MyChannelId();
+        }
     }
+
+    /**
+     * 自定义一个类去实现我们的 channelId
+     * 我们就可以自己去实现产生唯一 ID 的方式了
+     */
+    private static class MyChannelId implements ChannelId {
+
+        @Override
+        public String asShortText() {
+            return null;
+        }
+
+        @Override
+        public String asLongText() {
+            return "marvel";
+        }
+
+        @Override
+        public int compareTo(ChannelId o) {
+            return 0;
+        }
+    }
+
 }

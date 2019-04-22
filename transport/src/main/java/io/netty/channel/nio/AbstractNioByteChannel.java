@@ -128,6 +128,16 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             }
         }
 
+        /**
+         * 可以简单分为以下几个步骤
+         *
+         * 1.拿到 Channel 的 Config 之后拿到  ByteBuf 分配器，用来分配一个 ByteBuf，
+         * ByteBuf 是 netty 里面的字节数据载体，后面读取的数据都读到这个对象里
+         *
+         * 2.将 Channel 中的数据读取到 ByteBuf 中
+         *
+         * 3.数据读完之后，调用 pipeline.fireChannelRead(byteBuf); 从head节点开始传播至整个pipeline
+         */
         @Override
         public final void read() {
             final ChannelConfig config = config();
@@ -136,6 +146,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 return;
             }
             final ChannelPipeline pipeline = pipeline();
+            // todo: 获取一个 ByteBuf 的分配器
             final ByteBufAllocator allocator = config.getAllocator();
             final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
             allocHandle.reset(config);
@@ -144,8 +155,10 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             boolean close = false;
             try {
                 do {
+                    // 分配内存
                     byteBuf = allocHandle.allocate(allocator);
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
+                    // TODO：检查是否有内容获取，如果没有内容则释放 ByteBuf，并跳出循环
                     if (allocHandle.lastBytesRead() <= 0) {
                         // nothing was read. release the buffer.
                         byteBuf.release();
@@ -160,11 +173,16 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
                     allocHandle.incMessagesRead(1);
                     readPending = false;
+                    // todo: 这里就是 inbound 事件的起点
                     pipeline.fireChannelRead(byteBuf);
+                    // 每次读完都要释放 byteBuf
                     byteBuf = null;
                 } while (allocHandle.continueReading());
 
                 allocHandle.readComplete();
+                /*
+                    调用了 pipeline.fireChannelRead 后, 就是 ChannelPipeline 中所需要做的工作了
+                 */
                 pipeline.fireChannelReadComplete();
 
                 if (close) {
@@ -264,6 +282,12 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         incompleteWrite(writeSpinCount < 0);
     }
 
+    /**
+     * 非对外内存往对外内存的转化
+     *
+     * @param msg 这个可能是我们自己传的对象，也可能是 ByteBuf
+     * @return DirectBuffer
+     */
     @Override
     protected final Object filterOutboundMessage(Object msg) {
         if (msg instanceof ByteBuf) {

@@ -43,11 +43,19 @@ import io.netty.util.internal.TypeParameterMatcher;
  * <p>
  * Please keep in mind that {@link #channelRead0(ChannelHandlerContext, I)} will be renamed to
  * {@code messageReceived(ChannelHandlerContext, I)} in 5.0.
+ *
+ * TODO：该类会帮我们自动释放内存
  * </p>
  */
 public abstract class SimpleChannelInboundHandler<I> extends ChannelInboundHandlerAdapter {
 
+    /**
+     * 泛型 type 类型匹配器
+     */
     private final TypeParameterMatcher matcher;
+    /**
+     * 使用完消息，是否自动释放内存
+     */
     private final boolean autoRelease;
 
     /**
@@ -97,17 +105,21 @@ public abstract class SimpleChannelInboundHandler<I> extends ChannelInboundHandl
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        // 是否要释放消息
         boolean release = true;
         try {
+            // 判断是否是自己接收的消息
             if (acceptInboundMessage(msg)) {
                 @SuppressWarnings("unchecked")
                 I imsg = (I) msg;
                 channelRead0(ctx, imsg);
             } else {
+                // 如果不是自己接收的消息，则往下继续传播
                 release = false;
                 ctx.fireChannelRead(msg);
             }
         } finally {
+            // TODO：这里我们发现该 handler 会自动帮我们释放 msg
             if (autoRelease && release) {
                 ReferenceCountUtil.release(msg);
             }

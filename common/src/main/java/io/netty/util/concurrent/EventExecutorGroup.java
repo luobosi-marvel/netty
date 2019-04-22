@@ -38,6 +38,14 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
     /**
      * Shortcut method for {@link #shutdownGracefully(long, long, TimeUnit)} with sensible default values.
      *
+     * 统一定义 JVM 退出事件，并将 JVM 退出事件作为主题对进程内部发布
+     * 所有需要优雅退出的消费者订阅 JVM 退出事件主题
+     * 监听 JVM 退出的 ShutdownHook 被启动之后，发布 JVM 退出事件
+     * 消费者监听到 JVM 退出事件，开始执行自身的优雅退出
+     * 如果所有的非守护线程都成功完成优雅退出，进程主动退出
+     * 如果到了退出的超时时间荏苒没有正常退出，则由停机脚本通过 kill -9 pid 强杀进程，强制退出
+     *
+     *
      * @return the {@link #terminationFuture()}
      */
     Future<?> shutdownGracefully();

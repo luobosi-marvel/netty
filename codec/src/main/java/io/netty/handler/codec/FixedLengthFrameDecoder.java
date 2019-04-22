@@ -35,9 +35,15 @@ import java.util.List;
  * | ABC | DEF | GHI |
  * +-----+-----+-----+
  * </pre>
+ *
+ * 基于固定长度消息的解码器
+ * 逻辑十分简单，就是截取指定长度的流返回
  */
 public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
 
+    /**
+     * 指定解析长度
+     */
     private final int frameLength;
 
     /**
@@ -71,9 +77,11 @@ public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
      */
     protected Object decode(
             @SuppressWarnings("UnusedParameters") ChannelHandlerContext ctx, ByteBuf in) throws Exception {
+        // 如果长度不足指定长度，则直接返回 null，因为长度不够无法解析数据
         if (in.readableBytes() < frameLength) {
             return null;
         } else {
+            // 截取指定长度返回
             return in.readRetainedSlice(frameLength);
         }
     }

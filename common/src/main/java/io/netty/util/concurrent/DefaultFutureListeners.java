@@ -17,6 +17,10 @@ package io.netty.util.concurrent;
 
 import java.util.Arrays;
 
+/**
+ * GenericFutureListener 默认实现类，里面使用 GenericFutureListener 数组保存监听器
+ * 对一个事件关注，可能存在多个监听器
+ */
 final class DefaultFutureListeners {
 
     private GenericFutureListener<? extends Future<?>>[] listeners;

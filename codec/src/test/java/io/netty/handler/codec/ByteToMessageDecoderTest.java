@@ -32,6 +32,9 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 import static org.junit.Assert.*;
 
+/**
+ * 解码测试类
+ */
 public class ByteToMessageDecoderTest {
 
     @Test

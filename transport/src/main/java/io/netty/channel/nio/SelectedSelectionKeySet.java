@@ -21,9 +21,21 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+/**
+ * TODO：优化
+ * 添加新 select 到就绪事件的 SelectionKey 到 keys 中。
+ * 当超过数组大小上限时，调用 #increaseCapacity() 方法，进行两倍扩容。
+ * 相比 SelectorImpl(JDK 底层) 中使用的 selectedKeys 所使用的 HashSet 的 #add(E e) 方法，事件复杂度从 O(lgn) 降低到 O(1) 。
+ */
 final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
 
+    /**
+     * SelectKey 数组
+     */
     SelectionKey[] keys;
+    /**
+     * 数组可读大小
+     */
     int size;
 
     SelectedSelectionKeySet() {
@@ -94,8 +106,11 @@ final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
     }
 
     private void increaseCapacity() {
+        // 两倍扩容
         SelectionKey[] newKeys = new SelectionKey[keys.length << 1];
+        // 复制老数组到新数组
         System.arraycopy(keys, 0, newKeys, 0, size);
+        // 赋值给老数组
         keys = newKeys;
     }
 }

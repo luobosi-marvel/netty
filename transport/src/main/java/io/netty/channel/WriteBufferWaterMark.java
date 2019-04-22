@@ -31,6 +31,9 @@ package io.netty.channel;
 public final class WriteBufferWaterMark {
 
     private static final int DEFAULT_LOW_WATER_MARK = 32 * 1024;
+    /**
+     * TODO：默认写缓冲区大小 64KB
+     */
     private static final int DEFAULT_HIGH_WATER_MARK = 64 * 1024;
 
     public static final WriteBufferWaterMark DEFAULT =

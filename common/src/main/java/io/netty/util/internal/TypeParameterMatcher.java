@@ -24,6 +24,9 @@ import java.lang.reflect.TypeVariable;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * TODO：Type 参数匹配
+ */
 public abstract class TypeParameterMatcher {
 
     private static final TypeParameterMatcher NOOP = new TypeParameterMatcher() {
@@ -33,6 +36,13 @@ public abstract class TypeParameterMatcher {
         }
     };
 
+    /**
+     * TODO：性能优化
+     * 从这里我们会发现，Netty 会把 类类型存储在缓存里面，方便快速获取一个类型匹配器
+     *
+     * @param parameterType 类类型
+     * @return 类型匹配器
+     */
     public static TypeParameterMatcher get(final Class<?> parameterType) {
         final Map<Class<?>, TypeParameterMatcher> getCache =
                 InternalThreadLocalMap.get().typeParameterMatcherGetCache();
@@ -59,7 +69,7 @@ public abstract class TypeParameterMatcher {
 
         Map<String, TypeParameterMatcher> map = findCache.get(thisClass);
         if (map == null) {
-            map = new HashMap<String, TypeParameterMatcher>();
+            map = new HashMap<>();
             findCache.put(thisClass, map);
         }
 

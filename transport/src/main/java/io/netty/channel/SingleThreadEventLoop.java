@@ -35,6 +35,10 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
     protected static final int DEFAULT_MAX_PENDING_TASKS = Math.max(16,
             SystemPropertyUtil.getInt("io.netty.eventLoop.maxPendingTasks", Integer.MAX_VALUE));
 
+    /**
+     * 保存任务的 Queue，netty选择使用jctools 的 MpscChunkedArrayQueue，原因是为了提高效率，
+     * 因为Nio线程池的线程消费者只有一个，就是一直进行的select循环，而生产者可能有多个。
+     */
     private final Queue<Runnable> tailTasks;
 
     protected SingleThreadEventLoop(EventLoopGroup parent, ThreadFactory threadFactory, boolean addTaskWakesUp) {

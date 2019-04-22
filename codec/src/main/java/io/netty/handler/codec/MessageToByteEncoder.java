@@ -42,6 +42,8 @@ import io.netty.util.internal.TypeParameterMatcher;
  *         }
  *     }
  * </pre>
+ *
+ * 将消息编码成字节
  */
 public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdapter {
 
@@ -70,6 +72,7 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
      *                              {@link ByteBuf}, which is backed by an byte array.
      */
     protected MessageToByteEncoder(boolean preferDirect) {
+        // 泛型类型保存
         matcher = TypeParameterMatcher.find(this, MessageToByteEncoder.class, "I");
         this.preferDirect = preferDirect;
     }
@@ -95,21 +98,35 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
         return matcher.match(msg);
     }
 
+    /**
+     * todo: 疑问，这里为什么要知道 msg 的类型？
+     * 如果我们不自己实现编码器的话，使用 Netty 默认的，则该 msg 是什么类型？
+     *
+     * @param ctx
+     * @param msg
+     * @param promise
+     * @throws Exception
+     */
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         ByteBuf buf = null;
         try {
+            // 匹配类型对象,
             if (acceptOutboundMessage(msg)) {
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
+                // 给 cast 对象分配内存
                 buf = allocateBuffer(ctx, cast, preferDirect);
                 try {
+                    // 对 cast 进行编码
                     encode(ctx, cast, buf);
                 } finally {
+                    // 释放原始对象 cast（这里的 cast 有可能是传过来的 ByteBuf）
                     ReferenceCountUtil.release(cast);
                 }
 
                 if (buf.isReadable()) {
+                    // 往前传播数据
                     ctx.write(buf, promise);
                 } else {
                     buf.release();
@@ -124,6 +141,8 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
         } catch (Throwable e) {
             throw new EncoderException(e);
         } finally {
+            // 如果上面逻辑没有走到 buf = null 的情况，则有可能抛出了异常，需要再次释放内存
+            // 否则会 OOM
             if (buf != null) {
                 buf.release();
             }

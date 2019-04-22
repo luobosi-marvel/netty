@@ -54,23 +54,40 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private static final InternalLogger logger =
             InternalLoggerFactory.getInstance(SingleThreadEventExecutor.class);
 
+    //////////////////////////////////////////////// thread 线程有 5 中状态
+
+    /**
+     * 未开始
+     */
     private static final int ST_NOT_STARTED = 1;
+    /**
+     * 已经开始
+     */
     private static final int ST_STARTED = 2;
+    /**
+     * 正在关闭
+     */
     private static final int ST_SHUTTING_DOWN = 3;
+    /**
+     * 已经关闭
+     */
     private static final int ST_SHUTDOWN = 4;
+    /**
+     * 已经终止
+     */
     private static final int ST_TERMINATED = 5;
 
-    private static final Runnable WAKEUP_TASK = new Runnable() {
-        @Override
-        public void run() {
-            // Do nothing.
-        }
+    //////////////////////////////////////////////// thread 线程有 5 中状态
+
+    /**
+     * 添加任务到队列中。而添加的任务是 WAKEUP_TASK
+     */
+    private static final Runnable WAKEUP_TASK = () -> {
+        // Do nothing.
     };
-    private static final Runnable NOOP_TASK = new Runnable() {
-        @Override
-        public void run() {
-            // Do nothing.
-        }
+
+    private static final Runnable NOOP_TASK = () -> {
+        // Do nothing.
     };
 
     private static final AtomicIntegerFieldUpdater<SingleThreadEventExecutor> STATE_UPDATER =
@@ -79,8 +96,18 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
             AtomicReferenceFieldUpdater.newUpdater(
                     SingleThreadEventExecutor.class, ThreadProperties.class, "threadProperties");
 
+    /**
+     * 任务队列
+     * 外部线程执行的时候会把任务丢到对应线程的 taskQueue 里面，
+     */
     private final Queue<Runnable> taskQueue;
 
+    /**
+     * TODO EventLoop —— Thread
+     * 从这里可以看出，一个 EventLoop 和一个 Thread 绑定
+     *
+     * todo: thread 的初始化采用延迟启动的方式，只有在第一个任务时，executor 才会执行并创建该线程，从而节省资源。
+     */
     private volatile Thread thread;
     @SuppressWarnings("unused")
     private volatile ThreadProperties threadProperties;
@@ -90,7 +117,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private final Semaphore threadLock = new Semaphore(0);
     private final Set<Runnable> shutdownHooks = new LinkedHashSet<Runnable>();
     private final boolean addTaskWakesUp;
+    /**
+     * 最大等待执行任务数量,即 taskQueue 队列大小
+     */
     private final int maxPendingTasks;
+    /**
+     * 拒绝执行处理器。在 taskQueue 队列超过最大任务数量时，怎么拒绝处理新提交的任务。
+     */
     private final RejectedExecutionHandler rejectedExecutionHandler;
 
     private long lastExecutionTime;
@@ -216,7 +249,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     /**
      * Take the next {@link Runnable} from the task queue and so will block if no task is currently present.
-     * <p>
+     * <p>ShutdownHook
      * Be aware that this method will throw an {@link UnsupportedOperationException} if the task queue, which was
      * created via {@link #newTaskQueue()}, does not implement {@link BlockingQueue}.
      * </p>
@@ -270,15 +303,27 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
     }
 
+    /**
+     * 将定时任务中的任务保存到taskQueue 中执行
+     * 将当前时间传入，判断是否有到期的任务，有则返回
+     *
+     * @return true/false
+     */
     private boolean fetchFromScheduledTaskQueue() {
+        // 获取当前时间
         long nanoTime = AbstractScheduledEventExecutor.nanoTime();
+        // 获得指定时间内，定时任务队列**首个**可执行的任务，并且从队列中移除。
         Runnable scheduledTask  = pollScheduledTask(nanoTime);
         while (scheduledTask != null) {
+            // TODO: 从这里我们会发现，scheduledTask 会添加到 taskQueue 里面去执行
+            // 将定时任务添加到 taskQueue 中。若添加失败，则结束循环，返回 false ，表示未获取完所有课执行的定时任务
             if (!taskQueue.offer(scheduledTask)) {
+                // 将添加 taskQueue 失败的定时任务添加回 scheduledTaskQueue 中
                 // No space left in the task queue add it back to the scheduledTaskQueue so we pick it up again.
                 scheduledTaskQueue().add((ScheduledFutureTask<?>) scheduledTask);
                 return false;
             }
+            // 获得指定时间内，定时任务队列**首个**可执行的任务，并且从队列中移除。
             scheduledTask  = pollScheduledTask(nanoTime);
         }
         return true;
@@ -351,33 +396,42 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         boolean ranAtLeastOne = false;
 
         do {
+            // 不断的从定时任务中获取任务
             fetchedAll = fetchFromScheduledTaskQueue();
+            // 执行 taskQueue 队列里面的任务
             if (runAllTasksFrom(taskQueue)) {
                 ranAtLeastOne = true;
             }
         } while (!fetchedAll); // keep on processing until we fetched all scheduled tasks.
 
         if (ranAtLeastOne) {
+            // 设置任务最后执行的时间
             lastExecutionTime = ScheduledFutureTask.nanoTime();
         }
+        // 执行所有任务完成的后续方法
         afterRunningAllTasks();
         return ranAtLeastOne;
     }
 
     /**
      * Runs all tasks from the passed {@code taskQueue}.
+     * 运行传递的所有任务
      *
      * @param taskQueue To poll and execute all tasks.
      *
      * @return {@code true} if at least one task was executed.
      */
     protected final boolean runAllTasksFrom(Queue<Runnable> taskQueue) {
+        // 从 taskQueue 里面获取任务
         Runnable task = pollTaskFrom(taskQueue);
         if (task == null) {
             return false;
         }
+        // 使用 for 循环，不断执行 taskQueue 里面的任务
         for (;;) {
+            // TODO: 执行任务
             safeExecute(task);
+            // TODO：不断的从 taskQueue 队列里面取出任务
             task = pollTaskFrom(taskQueue);
             if (task == null) {
                 return true;
@@ -548,6 +602,16 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         return ran;
     }
 
+    /**
+     * 优雅退出
+     *
+     * @param quietPeriod the quiet period as described in the documentation
+     * @param timeout     the maximum amount of time to wait until the executor is {@linkplain #shutdown()}
+     *                    regardless if a task was submitted during the quiet period
+     * @param unit        the unit of {@code quietPeriod} and {@code timeout}
+     *
+     * @return
+     */
     @Override
     public Future<?> shutdownGracefully(long quietPeriod, long timeout, TimeUnit unit) {
         if (quietPeriod < 0) {
@@ -710,7 +774,17 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         if (gracefulShutdownStartTime == 0) {
             gracefulShutdownStartTime = ScheduledFutureTask.nanoTime();
         }
+        /*
+            TODO: runAllTasks 重复执行问题
+            1.为了防止定时任务Task或者用户自定义的线程Task的执行过多占用NioEventLoop线程的调度资源，
+            Netty对NioEventLoop线程I/O操作和非I/O操作时间做了比例限制，即限制非I/O操作的执行时间，
+            如上图红框中代码所示。有了执行时间限制，因此可能会导致已经到期的定时任务、普通任务没有执行完，
+            需要等待下次Selector轮询继续执行。在线程退出之前，需要对本该执行但是没有执行完成的Task进行扫尾处理，
+            所以在confirmShutdown中再次调用了runAllTasks方法；
 
+            2.在调用runAllTasks方法之后，执行confirmShutdown之前，用户向NioEventLoop中添加了新的普通任务或者定时任务，
+            因此需要在退出之前再次遍历并处理一遍Task Queue。
+         */
         if (runAllTasks() || runShutdownHooks()) {
             if (isShutdown()) {
                 // Executor shut down - no new tasks anymore.
@@ -768,19 +842,32 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         return isTerminated();
     }
 
+    /**
+     * TODO：NioEventLoop 执行一个任务
+     * 其实就是把任务添加到 taskQueue 任务队列里面去
+     * 通过这里我们会发现，第一次添加任务的时候，会调用 startThread 启动一个线程
+     *
+     * @param task  任务
+     */
     @Override
     public void execute(Runnable task) {
         if (task == null) {
             throw new NullPointerException("task");
         }
-
+        // 判断执行的线程是否是当前线程
         boolean inEventLoop = inEventLoop();
+        // TODO: 疑问：添加任务到队列，这里是往当前线程添加任务么？
         addTask(task);
         if (!inEventLoop) {
+            // 启动线程，向 EventLoop 内部的线程池提交任务，会执行 NioEventLoop run
+            // TODO: 调用 startThread 方法, 启动EventLoop 线程.
             startThread();
+
+            // TODO: 线程已经关闭，则拒绝任务
             if (isShutdown()) {
                 boolean reject = false;
                 try {
+                    // 移除任务
                     if (removeTask(task)) {
                         reject = true;
                     }
@@ -790,10 +877,12 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                     // In worst case we will log on termination.
                 }
                 if (reject) {
+                    // TODO：SingleThreadEventExecutor 默认拒绝策略是直接抛出异常，子类可以自己实现
                     reject();
                 }
             }
         }
+
 
         if (!addTaskWakesUp && wakesUpForTask(task)) {
             wakeup(inEventLoop);
@@ -880,6 +969,10 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     private static final long SCHEDULE_PURGE_INTERVAL = TimeUnit.SECONDS.toNanos(1);
 
+    /**
+     * TODO: 启动线程,也就是启动一个 EventLoop
+     * 通过该方法，我们发现当 thread state 没有启动的时候才会去调用 doStartThread 启动一个线程
+     */
     private void startThread() {
         if (state == ST_NOT_STARTED) {
             if (STATE_UPDATER.compareAndSet(this, ST_NOT_STARTED, ST_STARTED)) {
@@ -894,67 +987,67 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     private void doStartThread() {
+        // 线程没有启动过
         assert thread == null;
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                thread = Thread.currentThread();
-                if (interrupted) {
-                    thread.interrupt();
+        executor.execute(() -> {
+            // 保存当前线程
+            thread = Thread.currentThread();
+            if (interrupted) {
+                thread.interrupt();
+            }
+
+            boolean success = false;
+            updateLastExecutionTime();
+            try {
+                //
+                SingleThreadEventExecutor.this.run();
+                success = true;
+            } catch (Throwable t) {
+                logger.warn("Unexpected exception from an event executor: ", t);
+            } finally {
+                for (;;) {
+                    int oldState = state;
+                    if (oldState >= ST_SHUTTING_DOWN || STATE_UPDATER.compareAndSet(
+                            SingleThreadEventExecutor.this, oldState, ST_SHUTTING_DOWN)) {
+                        break;
+                    }
                 }
 
-                boolean success = false;
-                updateLastExecutionTime();
+                // Check if confirmShutdown() was called at the end of the loop.
+                if (success && gracefulShutdownStartTime == 0) {
+                    if (logger.isErrorEnabled()) {
+                        logger.error("Buggy " + EventExecutor.class.getSimpleName() + " implementation; " +
+                                SingleThreadEventExecutor.class.getSimpleName() + ".confirmShutdown() must " +
+                                "be called before run() implementation terminates.");
+                    }
+                }
+
                 try {
-                    SingleThreadEventExecutor.this.run();
-                    success = true;
-                } catch (Throwable t) {
-                    logger.warn("Unexpected exception from an event executor: ", t);
-                } finally {
+                    // Run all remaining tasks and shutdown hooks.
                     for (;;) {
-                        int oldState = state;
-                        if (oldState >= ST_SHUTTING_DOWN || STATE_UPDATER.compareAndSet(
-                                SingleThreadEventExecutor.this, oldState, ST_SHUTTING_DOWN)) {
+                        if (confirmShutdown()) {
                             break;
                         }
                     }
-
-                    // Check if confirmShutdown() was called at the end of the loop.
-                    if (success && gracefulShutdownStartTime == 0) {
-                        if (logger.isErrorEnabled()) {
-                            logger.error("Buggy " + EventExecutor.class.getSimpleName() + " implementation; " +
-                                    SingleThreadEventExecutor.class.getSimpleName() + ".confirmShutdown() must " +
-                                    "be called before run() implementation terminates.");
-                        }
-                    }
-
+                } finally {
                     try {
-                        // Run all remaining tasks and shutdown hooks.
-                        for (;;) {
-                            if (confirmShutdown()) {
-                                break;
-                            }
-                        }
+                        cleanup();
                     } finally {
-                        try {
-                            cleanup();
-                        } finally {
-                            // Lets remove all FastThreadLocals for the Thread as we are about to terminate and notify
-                            // the future. The user may block on the future and once it unblocks the JVM may terminate
-                            // and start unloading classes.
-                            // See https://github.com/netty/netty/issues/6596.
-                            FastThreadLocal.removeAll();
+                        // Lets remove all FastThreadLocals for the Thread as we are about to terminate and notify
+                        // the future. The user may block on the future and once it unblocks the JVM may terminate
+                        // and start unloading classes.
+                        // See https://github.com/netty/netty/issues/6596.
+                        FastThreadLocal.removeAll();
 
-                            STATE_UPDATER.set(SingleThreadEventExecutor.this, ST_TERMINATED);
-                            threadLock.release();
-                            if (!taskQueue.isEmpty()) {
-                                if (logger.isWarnEnabled()) {
-                                    logger.warn("An event executor terminated with " +
-                                            "non-empty task queue (" + taskQueue.size() + ')');
-                                }
+                        STATE_UPDATER.set(SingleThreadEventExecutor.this, ST_TERMINATED);
+                        threadLock.release();
+                        if (!taskQueue.isEmpty()) {
+                            if (logger.isWarnEnabled()) {
+                                logger.warn("An event executor terminated with " +
+                                        "non-empty task queue (" + taskQueue.size() + ')');
                             }
-                            terminationFuture.setSuccess(null);
                         }
+                        terminationFuture.setSuccess(null);
                     }
                 }
             }

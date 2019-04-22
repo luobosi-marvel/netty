@@ -27,9 +27,26 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Abstract base class for {@link EventExecutor}s that want to support scheduling.
+ * Netty 定时任务抽象类
+ *
+ * TODO：疑问：Netty 为什么要自己实现线程池，而不直接使用 ScheduledExecutorService？
+ *
+ * ScheduledExecutorService 的实现是有限制的，比如额外的线程被创建作为池管理的一部分。如果许多任务被积极安排，这可能会遇到瓶颈。
+ *
+ * 使用 JDK 的定时任务线程池 ScheduledExecutorService 的局限性包括：
+ * 1.在 IO 线程中聚合了一个独立的定时任务线程池，这样在处理过程中会存在线程上下文切换问题，这就打破了 Netty 的串行设计理念。
+ *
+ * 2.存在多线程并发操作问题，因为定时任务 Task 和 IO 线程 NioEventLoop 可能同时访问并修改同一份数据
+ *
+ * 3.JDK的ScheduledExecutorService从性能角度看，存在性能优化空间。
+ *
+ * TODO：定时任务队列里面的任务，最终还是会添加到 taskQueue 中去执行的
  */
 public abstract class AbstractScheduledEventExecutor extends AbstractEventExecutor {
 
+    /**
+     * 任务队列比较器
+     */
     private static final Comparator<ScheduledFutureTask<?>> SCHEDULED_FUTURE_TASK_COMPARATOR =
             new Comparator<ScheduledFutureTask<?>>() {
                 @Override
@@ -38,6 +55,10 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
                 }
             };
 
+    /**
+     * 使用一个普通的优先级队列保存定时任务
+     * TODO：疑问：为什么不采用线程安全的优先级队列？难道这里没有线程安全问题吗？Netty 是如何避免线程安全的？
+     */
     PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue;
 
     protected AbstractScheduledEventExecutor() {
@@ -225,6 +246,14 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         // NOOP
     }
 
+    /**
+     * 判断是当前线程还是其他线程
+     * 这里调度的时候会判断当前线程是否是当前 EventLoop 绑定的线程
+     *
+     * @param task
+     * @param <V>
+     * @return
+     */
     <V> ScheduledFuture<V> schedule(final ScheduledFutureTask<V> task) {
         if (inEventLoop()) {
             scheduledTaskQueue().add(task);

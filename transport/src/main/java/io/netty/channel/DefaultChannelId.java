@@ -33,6 +33,16 @@ import static io.netty.util.internal.MacAddressUtil.parseMAC;
 
 /**
  * The default {@link ChannelId} implementation.
+ * 我们可以自己实现唯一id 产生的算法, 详见 —— @see AbstractChannelTest.ensureDefaultChannelId
+ * TODO：疑问：channelID 产生的算法不太理解
+ *
+ * ChannelId由以下规则构成，我们也可以自己去实现并为 channel 创建一个全局唯一id
+ * 1：服务器的Mac地址
+ * 2：当前的进程ID
+ * 3：System.currentTimeMillis()
+ * 4：System.nanoTime()
+ * 5：一个随机的32位整数
+ * 6：一个顺序增长的32位整数
  */
 public final class DefaultChannelId implements ChannelId {
 

@@ -25,6 +25,7 @@ public interface EventExecutorChooserFactory {
 
     /**
      * Returns a new {@link EventExecutorChooser}.
+     * 主要是为新连接绑定 NioEventLoop
      */
     EventExecutorChooser newChooser(EventExecutor[] executors);
 

@@ -20,9 +20,15 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A skeletal {@link Future} implementation which represents a {@link Future} which has been completed already.
+ *
+ * Complete 表示操作已经完成，所以 CompleteFuture 表示一个异步操作已完成的结果，由此可推知：该类的实例再异步操作完成时创建，
+ * 返回给用户，用户则使用addListener()方法定义一个异步操作。如果你熟悉javascript，将Listener类比于回调函数callback()可方便理解。
  */
 public abstract class CompleteFuture<V> extends AbstractFuture<V> {
 
+    /**
+     * 执行器，执行Listener中定义的操作
+     */
     private final EventExecutor executor;
 
     /**

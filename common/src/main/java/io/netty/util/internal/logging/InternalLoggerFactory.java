@@ -35,6 +35,14 @@ public abstract class InternalLoggerFactory {
 
     private static volatile InternalLoggerFactory defaultFactory;
 
+    /**
+     * 类的初始化块会在类第一次被使用的时候执行。那么什么时候称之为第一次被使用呢？
+     * 比如说，静态方法被调用，静态变量被访问，或者调用构造函数。
+     *
+     * TODO：这里日志加载可以 MyBatis 的日志加载比拼一下
+     * @param name 日志框架名称
+     * @return InternalLoggerFactory 工厂抽象类对象
+     */
     @SuppressWarnings("UnusedCatchParameter")
     private static InternalLoggerFactory newDefaultFactory(String name) {
         InternalLoggerFactory f;

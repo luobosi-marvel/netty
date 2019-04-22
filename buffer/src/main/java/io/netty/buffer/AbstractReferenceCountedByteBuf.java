@@ -28,6 +28,11 @@ import static io.netty.util.internal.ObjectUtil.checkPositive;
  */
 public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
     private static final long REFCNT_FIELD_OFFSET;
+
+    /**
+     * TODO:疑问：为什么 refCnt 不使用 AtomicInteger 呢？
+     * 因为 ByteBuf 对象很多，如果都把 int 包一层 AtomicInteger 花销较大，而AtomicIntegerFieldUpdater 只需要一个全局的静态变量。
+     */
     private static final AtomicIntegerFieldUpdater<AbstractReferenceCountedByteBuf> refCntUpdater =
             AtomicIntegerFieldUpdater.newUpdater(AbstractReferenceCountedByteBuf.class, "refCnt");
 
@@ -164,6 +169,8 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
                     return false;
                 }
             } else {
+                // TODO: 报错：这里说明 decrement 比实际引用还要大
+                // nio.netty.util.IllegalReferenceCountException: refCnt: 0, increment: 1
                 throw new IllegalReferenceCountException(realCnt, -decrement);
             }
             Thread.yield(); // this benefits throughput under high contention

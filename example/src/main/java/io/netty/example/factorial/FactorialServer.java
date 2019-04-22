@@ -43,18 +43,24 @@ public final class FactorialServer {
         } else {
             sslCtx = null;
         }
-
+        // 启动一个 bossGroup ，里面就一个 线程
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        // 启动工作线程，默认是 cpu * 2
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
+            // 启动类
             ServerBootstrap b = new ServerBootstrap();
+            // 绑定 boss 线程和工作线程
             b.group(bossGroup, workerGroup)
+                    // 确定 channel 类型
              .channel(NioServerSocketChannel.class)
+                    // 添加 handler
              .handler(new LoggingHandler(LogLevel.INFO))
              .childHandler(new FactorialServerInitializer(sslCtx));
 
             b.bind(PORT).sync().channel().closeFuture().sync();
         } finally {
+            // 优雅关闭
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }

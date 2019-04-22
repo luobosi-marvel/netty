@@ -20,6 +20,8 @@ import java.net.SocketAddress;
 /**
  * {@link ChannelHandler} implementation which represents a combination out of a {@link ChannelInboundHandler} and
  * the {@link ChannelOutboundHandler}.
+ * TODO：ChannelDuplexHandler 双向 Handler
+ * 既是 ChannelInboundHandlerAdapter 又是 ChannelOutboundHandler
  *
  * It is a good starting point if your {@link ChannelHandler} implementation needs to intercept operations and also
  * state updates.

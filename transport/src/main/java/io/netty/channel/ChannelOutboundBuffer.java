@@ -48,6 +48,8 @@ import static java.lang.Math.min;
  * <li>{@link #getUserDefinedWritability(int)} and {@link #setUserDefinedWritability(int, boolean)}</li>
  * </ul>
  * </p>
+ *
+ * TODO： 写缓冲区
  */
 public final class ChannelOutboundBuffer {
     // Assuming a 64-bit JVM:
@@ -74,10 +76,19 @@ public final class ChannelOutboundBuffer {
     // Entry(flushedEntry) --> ... Entry(unflushedEntry) --> ... Entry(tailEntry)
     //
     // The Entry that is the first in the linked-list structure that was flushed
+    /**
+     * 指针表示第一个被写到操作系统Socket缓冲区中的节点
+     */
     private Entry flushedEntry;
     // The Entry which is the first unflushed in the linked-list structure
+    /**
+     * 指针表示第一个未被写入到操作系统Socket缓冲区中的节点
+     */
     private Entry unflushedEntry;
     // The Entry which represents the tail of the buffer
+    /**
+     * 指针表示ChannelOutboundBuffer缓冲区的最后一个节点
+     */
     private Entry tailEntry;
     // The number of flushed entries that are not written yet
     private int flushed;
@@ -171,7 +182,9 @@ public final class ChannelOutboundBuffer {
         }
 
         long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, size);
+        // 写缓冲区默认是 64KB
         if (newWriteBufferSize > channel.config().getWriteBufferHighWaterMark()) {
+            // 超过 64KB 就不让写了
             setUnwritable(invokeLater);
         }
     }

@@ -37,6 +37,8 @@ import java.util.Set;
  * a special field to store the necessary state.  An access by any other kind of thread falls back to a regular
  * {@link ThreadLocal}.
  * </p>
+ * netty 自己实现的 ThreadLocal 对象
+ * 每个线程保存了PoolThreadCache对象
  *
  * @param <V> the type of the thread-local variable
  * @see ThreadLocal

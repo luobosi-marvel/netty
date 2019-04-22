@@ -18,8 +18,6 @@ package io.netty.handler.codec.redis;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.CharsetUtil;
-import io.netty.util.collection.LongObjectHashMap;
-import io.netty.util.collection.LongObjectMap;
 import io.netty.util.internal.UnstableApi;
 
 import java.util.HashMap;
@@ -76,8 +74,8 @@ public final class FixedRedisMessagePool implements RedisMessagePool {
     private final Map<ByteBuf, ErrorRedisMessage> byteBufToErrors;
     private final Map<String, ErrorRedisMessage> stringToErrors;
     private final Map<ByteBuf, IntegerRedisMessage> byteBufToIntegers;
-    private final LongObjectMap<IntegerRedisMessage> longToIntegers;
-    private final LongObjectMap<byte[]> longToByteBufs;
+    //private final LongObjectMap<IntegerRedisMessage> longToIntegers;
+    //private final LongObjectMap<byte[]> longToByteBufs;
 
     /**
      * Creates a {@link FixedRedisMessagePool} instance.
@@ -104,16 +102,16 @@ public final class FixedRedisMessagePool implements RedisMessagePool {
         }
 
         byteBufToIntegers = new HashMap<ByteBuf, IntegerRedisMessage>(SIZE_CACHED_INTEGER_NUMBER, 1.0f);
-        longToIntegers = new LongObjectHashMap<IntegerRedisMessage>(SIZE_CACHED_INTEGER_NUMBER, 1.0f);
-        longToByteBufs = new LongObjectHashMap<byte[]>(SIZE_CACHED_INTEGER_NUMBER, 1.0f);
+        //longToIntegers = new LongObjectHashMap<IntegerRedisMessage>(SIZE_CACHED_INTEGER_NUMBER, 1.0f);
+        //longToByteBufs = new LongObjectHashMap<byte[]>(SIZE_CACHED_INTEGER_NUMBER, 1.0f);
         for (long value = MIN_CACHED_INTEGER_NUMBER; value < MAX_CACHED_INTEGER_NUMBER; value++) {
             byte[] keyBytes = RedisCodecUtil.longToAsciiBytes(value);
             ByteBuf keyByteBuf = Unpooled.unmodifiableBuffer(Unpooled.unreleasableBuffer(
                     Unpooled.wrappedBuffer(keyBytes)));
             IntegerRedisMessage cached = new IntegerRedisMessage(value);
             byteBufToIntegers.put(keyByteBuf, cached);
-            longToIntegers.put(value, cached);
-            longToByteBufs.put(value, keyBytes);
+            //longToIntegers.put(value, cached);
+            //longToByteBufs.put(value, keyBytes);
         }
     }
 
@@ -139,7 +137,7 @@ public final class FixedRedisMessagePool implements RedisMessagePool {
 
     @Override
     public IntegerRedisMessage getInteger(long value) {
-        return longToIntegers.get(value);
+        return null; //longToIntegers.get(value);
     }
 
     @Override
@@ -149,6 +147,6 @@ public final class FixedRedisMessagePool implements RedisMessagePool {
 
     @Override
     public byte[] getByteBufOfInteger(long value) {
-        return longToByteBufs.get(value);
+        return null; //longToByteBufs.get(value);
     }
 }

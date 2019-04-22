@@ -32,35 +32,65 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(DefaultPromise.class);
+
+    /**
+     *
+     */
     private static final InternalLogger rejectedExecutionLogger =
             InternalLoggerFactory.getInstance(DefaultPromise.class.getName() + ".rejectedExecution");
+
+    /**
+     * 可以嵌套的Listener的最大层数，可见最大值为8
+     */
     private static final int MAX_LISTENER_STACK_DEPTH = Math.min(8,
             SystemPropertyUtil.getInt("io.netty.defaultPromise.maxListenerStackDepth", 8));
     @SuppressWarnings("rawtypes")
     private static final AtomicReferenceFieldUpdater<DefaultPromise, Object> RESULT_UPDATER =
             AtomicReferenceFieldUpdater.newUpdater(DefaultPromise.class, Object.class, "result");
+
+    /**
+     * 此处的Signal是Netty定义的类，继承自Error，异步操作成功且结果为null时设置为改值
+     */
     private static final Object SUCCESS = new Object();
+    /**
+     * 异步操作不可取消
+     */
     private static final Object UNCANCELLABLE = new Object();
+
+    /**
+     * 异步操作失败时保存异常原因
+     */
     private static final CauseHolder CANCELLATION_CAUSE_HOLDER = new CauseHolder(ThrowableUtil.unknownStackTrace(
             new CancellationException(), DefaultPromise.class, "cancel(...)"));
 
+    /**
+     * 异步操作结果
+     */
     private volatile Object result;
+    /**
+     * 执行listener操作的执行器
+     */
     private final EventExecutor executor;
     /**
      * One or more listeners. Can be a {@link GenericFutureListener} or a {@link DefaultFutureListeners}.
      * If {@code null}, it means either 1) no listeners were added yet or 2) all listeners were notified.
      *
      * Threading - synchronized(this). We must support adding listeners when there is no EventExecutor.
+     *
+     * 监听者
      */
     private Object listeners;
     /**
      * Threading - synchronized(this). We are required to hold the monitor to use Java's underlying wait()/notifyAll().
+     * 阻塞等待该结果的线程数
      */
     private short waiters;
 
     /**
      * Threading - synchronized(this). We must prevent concurrent notification and FIFO listener notification if the
      * executor changes.
+     *
+     * 通知正在进行标识
      */
     private boolean notifyingListeners;
 
@@ -152,12 +182,13 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     @Override
     public Promise<V> addListener(GenericFutureListener<? extends Future<? super V>> listener) {
+        // 参数校验
         checkNotNull(listener, "listener");
-
+        // 保证多线程情况下只有一个线程执行添加操作
         synchronized (this) {
             addListener0(listener);
         }
-
+        // 异步操作已经完成通知监听者
         if (isDone()) {
             notifyListeners();
         }
@@ -413,10 +444,18 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         notifyListenerWithStackOverFlowProtection(eventExecutor, future, listener);
     }
 
+    /**
+     * 通知所有监听器
+     *
+     * 从下面我们可以看出，外部线程不能执行监听者 Listener 中定义的操作，只能提交任务到指定 Executor，
+     * 其中的操作最终由指定 Executor 执行。
+     */
     private void notifyListeners() {
+        // 拿到一个执行器
         EventExecutor executor = executor();
         if (executor.inEventLoop()) {
             final InternalThreadLocalMap threadLocals = InternalThreadLocalMap.get();
+            // 获取监听器的深度
             final int stackDepth = threadLocals.futureListenerStackDepth();
             if (stackDepth < MAX_LISTENER_STACK_DEPTH) {
                 threadLocals.setFutureListenerStackDepth(stackDepth + 1);
@@ -429,12 +468,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
             }
         }
 
-        safeExecute(executor, new Runnable() {
-            @Override
-            public void run() {
-                notifyListenersNow();
-            }
-        });
+        // 如果是外部线程，则通过任务提交去执行
+        safeExecute(executor, () -> notifyListenersNow());
     }
 
     /**
@@ -516,6 +551,11 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         }
     }
 
+    /**
+     * 添加一个监听器
+     *
+     * @param listener 监听器
+     */
     private void addListener0(GenericFutureListener<? extends Future<? super V>> listener) {
         if (listeners == null) {
             listeners = listener;

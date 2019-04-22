@@ -91,6 +91,7 @@ import java.util.concurrent.TimeUnit;
  * bootstrap.childHandler(new MyChannelInitializer());
  * ...
  * </pre>
+ * 心跳检测
  *
  * @see ReadTimeoutHandler
  * @see WriteTimeoutHandler
@@ -289,6 +290,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
         if ((readerIdleTimeNanos > 0 || allIdleTimeNanos > 0) && reading) {
+            // 记录读的时间
             lastReadTime = ticksInNanos();
             reading = false;
         }
@@ -341,11 +343,18 @@ public class IdleStateHandler extends ChannelDuplexHandler {
 
     /**
      * This method is visible for testing!
+     *
+     * TODO：EventLoop 中的任务
+     * 很明显，每个 EventLoop 会维护多个 Channel，每个 Channel 对应一个 Socket
+     * 然而每个 EventLoop 中也会维护一个时间轮，因此心跳检测刚好也可以放到 EventLoop 中去。定时检测
      */
     ScheduledFuture<?> schedule(ChannelHandlerContext ctx, Runnable task, long delay, TimeUnit unit) {
         return ctx.executor().schedule(task, delay, unit);
     }
 
+    /**
+     * destroy
+     */
     private void destroy() {
         state = 2;
 

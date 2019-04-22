@@ -33,7 +33,7 @@ import static java.lang.Math.min;
 
 /**
  * Light-weight object pool based on a thread-local stack.
- *
+ * todo：一个轻量级对象池
  * @param <T> the type of the pooled object
  */
 public abstract class Recycler<T> {
@@ -194,6 +194,11 @@ public abstract class Recycler<T> {
 
     protected abstract T newObject(Handle<T> handle);
 
+    /**
+     * 回收对象
+     *
+     * @param <T> 泛型
+     */
     public interface Handle<T> {
         void recycle(T object);
     }

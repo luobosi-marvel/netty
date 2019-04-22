@@ -73,6 +73,14 @@ import java.net.SocketAddress;
  * It is important to call {@link #close()} or {@link #close(ChannelPromise)} to release all
  * resources once you are done with the {@link Channel}. This ensures all resources are
  * released in a proper way, i.e. filehandles.
+ *
+ *
+ * TODO：对 channel 的理解
+ * 1.一个Channel就相当于一个Socket
+ * 2.Channel拥有以下一些IO操作的能力，包括连接，绑定，断开，读写数据等
+ * 3.Channel中的所有方法都是异步的，方法执行的返回值是一个ChannelFuture
+ * 4.ChannelFuture可以通过添加Listener的方式在方法执行完毕的时候通知方法的调用者
+ * 5.Channel被设计为线程安全的，我们不必担心线程安全的问题，并且可以将Channel的引用保存起来，以便后面使用。
  */
 public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparable<Channel> {
 
@@ -197,6 +205,15 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      * <em>Unsafe</em> operations that should <em>never</em> be called from user-code. These methods
      * are only provided to implement the actual transport, and must be invoked from an I/O thread except for the
      * following methods:
+     * 主要功能：
+     * 1. 分配内存
+     * 2. Socket 四元组信息
+     * 3. 注册事件循环
+     * 4. 绑定网卡端口
+     * 5. Socket 的连接和关闭
+     * 6. Socket 的读写
+     *
+     *
      * <ul>
      *   <li>{@link #localAddress()}</li>
      *   <li>{@link #remoteAddress()}</li>

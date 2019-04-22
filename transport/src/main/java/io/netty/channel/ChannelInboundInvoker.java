@@ -15,6 +15,11 @@
  */
 package io.netty.channel;
 
+/**
+ * inbound 事件的传播
+ *  - 读事件
+ *  - 注册事件或者一个 activity 事件
+ */
 public interface ChannelInboundInvoker {
 
     /**

@@ -27,11 +27,29 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
 
     public static final DefaultEventExecutorChooserFactory INSTANCE = new DefaultEventExecutorChooserFactory();
 
-    private DefaultEventExecutorChooserFactory() { }
+    private DefaultEventExecutorChooserFactory() {
+    }
 
+    /**
+     * 主要是为新连接绑定 NioEventLoop
+     * @param executors
+     * @return
+     */
     @SuppressWarnings("unchecked")
     @Override
     public EventExecutorChooser newChooser(EventExecutor[] executors) {
+        /*
+            TODO：疑问：两种模式有什么区别？
+            幂次效率是很高的，计算机底层是没有取模的操作的，取模需要重新调取 api，效率低下
+
+            数组循环，
+            idx                 1 1 1 0 1 0
+                                          &
+            executors.length - 1    1 1 1 1
+            result                  1 0 1 0
+
+            从上面可以知道，进行下一轮循环的时候，后面四位都变成了 0，那么和 length - 1 相与 也变成了 0，下表也就是 0
+         */
         if (isPowerOfTwo(executors.length)) {
             return new PowerOfTwoEventExecutorChooser(executors);
         } else {
@@ -39,6 +57,15 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
         }
     }
 
+    /**
+     * TODO：疑问：这个判断是什么意思？
+     * 根据 nThreads 的大小, 创建不同的 Chooser, 即如果 nThreads 是 2 的幂, 则使用 PowerOfTwoEventExecutorChooser,
+     * 反之使用 GenericEventExecutorChooser. 不论使用哪个 Chooser, 它们的功能都是一样的,
+     * 即从 children 数组中选出一个合适的 EventExecutor 实例.
+     *
+     * @param val length
+     * @return true/false
+     */
     private static boolean isPowerOfTwo(int val) {
         return (val & -val) == val;
     }
@@ -57,6 +84,10 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
         }
     }
 
+    /**
+     * 普通方式
+     * 其实就是循环数组返回
+     */
     private static final class GenericEventExecutorChooser implements EventExecutorChooser {
         private final AtomicInteger idx = new AtomicInteger();
         private final EventExecutor[] executors;

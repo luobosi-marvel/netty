@@ -60,6 +60,22 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
 
     /**
      * Create a new instance.
+     * 创建一个实例
+     *
+     *
+     * 1.如果传入的executor 为空，会默认使用ThreadPerTaskExecutor，该线程池针对每个任务会创建一个线程，
+     * 创建线程方式使用DefaultThreadFactory提供的newThread方法。
+     *
+     * 2.初始化开始，首先会根据创建nThread个子线程池，保存在childrens变量中，创建逻辑比较简单，
+     * 将初始化NioEventLoopGroup时设置的参数传递给NioEventLoop对象。在创建子线程池NioEventLoop的过程中，
+     * 如果一旦有失败的，就需要关闭已经创建的所有子线程池并等待这些线程池结束。
+     *
+     * 3.之后，使用chooserFactory创建chooser，用来在next()选择事件循环时从childrens变量选择一个返回。默认使用2的倍数的策略，
+     * 也可以设置为顺序依次选择。
+     *
+     * 4.向组中所有的事件循环的terminationFuture注册事件，目的是等待所有事件循环结束后将事件循环组的terminatedChildren设置为成功完成。
+     *
+     * 5.最后，将children复制保存为一个只读的集合，保存在变量readonlyChildren中。
      *
      * @param nThreads          the number of threads that will be used by this instance.
      * @param executor          the Executor to use, or {@code null} if the default should be used.
@@ -157,6 +173,17 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
      */
     protected abstract EventExecutor newChild(Executor executor, Object... args) throws Exception;
 
+    /**
+     * 可以看到 NioEventLoopGroup 是直接遍历 EventLoop 数组，循环调用它们的 shutdownGraceFully 方法。
+     *
+     *
+     * @param quietPeriod the quiet period as described in the documentation
+     * @param timeout     the maximum amount of time to wait until the executor is {@linkplain #shutdown()}
+     *                    regardless if a task was submitted during the quiet period
+     * @param unit        the unit of {@code quietPeriod} and {@code timeout}
+     *
+     * @return
+     */
     @Override
     public Future<?> shutdownGracefully(long quietPeriod, long timeout, TimeUnit unit) {
         for (EventExecutor l: children) {

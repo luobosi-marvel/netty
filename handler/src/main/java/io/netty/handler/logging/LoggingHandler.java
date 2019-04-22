@@ -35,16 +35,32 @@ import static io.netty.util.internal.StringUtil.NEWLINE;
 /**
  * A {@link ChannelHandler} that logs all events using a logging framework.
  * By default, all events are logged at <tt>DEBUG</tt> level.
+ *
+ * LoggingHandler 既是一个 inBound handler 也是一个 outBound handler
+ * TODO：LoggingHandler 可以对 InBound/OutBound 事件进行日志的记录
  */
 @Sharable
 @SuppressWarnings({ "StringConcatenationInsideStringBufferAppend", "StringBufferReplaceableByString" })
 public class LoggingHandler extends ChannelDuplexHandler {
 
+    /**
+     * Netty 默认的日志级别
+     */
     private static final LogLevel DEFAULT_LEVEL = LogLevel.DEBUG;
 
+    /**
+     * Netty 内部的 logger 对象
+     */
     protected final InternalLogger logger;
+
+    /**
+     * Netty 内部的日志级别
+     */
     protected final InternalLogLevel internalLevel;
 
+    /**
+     * 配置的日志级别
+     */
     private final LogLevel level;
 
     /**
@@ -83,6 +99,7 @@ public class LoggingHandler extends ChannelDuplexHandler {
 
     /**
      * Creates a new instance with the specified logger name.
+     * 通过制定的 logger 创建爱你一个 LoggingHandler 实例
      *
      * @param clazz the class type to generate the logger for
      * @param level the log level
@@ -134,6 +151,8 @@ public class LoggingHandler extends ChannelDuplexHandler {
     public LogLevel level() {
         return level;
     }
+
+    // 日志记录，事件传播
 
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
