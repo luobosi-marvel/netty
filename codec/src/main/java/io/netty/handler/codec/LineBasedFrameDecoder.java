@@ -109,11 +109,13 @@ public class LineBasedFrameDecoder extends ByteToMessageDecoder {
      *                          be created.
      */
     protected Object decode(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
+        // 找到换行符的位置
         final int eol = findEndOfLine(buffer);
         if (!discarding) {
             if (eol >= 0) {
                 final ByteBuf frame;
                 final int length = eol - buffer.readerIndex();
+                // 换行符的长度
                 final int delimLength = buffer.getByte(eol) == '\r'? 2 : 1;
 
                 if (length > maxLength) {
@@ -126,9 +128,10 @@ public class LineBasedFrameDecoder extends ByteToMessageDecoder {
                     frame = buffer.readRetainedSlice(length);
                     buffer.skipBytes(delimLength);
                 } else {
+                    // 把需要解码的字节放到 frame ByteBuf 中
                     frame = buffer.readRetainedSlice(length + delimLength);
                 }
-
+                // 返回解析出来的 ByteBuf
                 return frame;
             } else {
                 final int length = buffer.readableBytes();
@@ -176,13 +179,17 @@ public class LineBasedFrameDecoder extends ByteToMessageDecoder {
     /**
      * Returns the index in the buffer of the end of line found.
      * Returns -1 if no end of line was found in the buffer.
+     *
+     * 找到换行符的位置
      */
     private int findEndOfLine(final ByteBuf buffer) {
 
         int totalLength = buffer.readableBytes();
+        // 寻找 buffer 中换行符的位置
         int i = buffer.forEachByte(buffer.readerIndex() + offset, totalLength - offset, ByteProcessor.FIND_LF);
         if (i >= 0) {
             offset = 0;
+            // 找到第一个 \n 的位置，如果 \n 前面的字符为 \r,那就返回 \r 的位置
             if (i > 0 && buffer.getByte(i - 1) == '\r') {
                 i--;
             }

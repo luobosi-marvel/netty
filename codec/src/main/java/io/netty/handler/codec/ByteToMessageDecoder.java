@@ -77,6 +77,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * Cumulate {@link ByteBuf}s by merge them into one {@link ByteBuf}'s, using memory copies.
      * <p>
      * 累加器
+     * 该累加器原理是每次都将读取到的数据通过内存拷贝的方式，拼接到一个大的字节容器中
      */
     public static final Cumulator MERGE_CUMULATOR = new Cumulator() {
         @Override
@@ -471,7 +472,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
         try {
             // 累加器里面的数据是否可读
             while (in.isReadable()) {
-                // 存放解码后对象的 list 大小
+                // 存放解码后对象的 list 大小，记录一下字节容器中有多少字节待拆
                 int outSize = out.size();
 
                 if (outSize > 0) {

@@ -656,6 +656,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return ctx.handler();
     }
 
+    /**
+     * 替换指定的 channelHandle
+     *
+     * @param oldCtx old
+     * @param newCtx new
+     */
     private static void replace0(AbstractChannelHandlerContext oldCtx, AbstractChannelHandlerContext newCtx) {
         AbstractChannelHandlerContext prev = oldCtx.prev;
         AbstractChannelHandlerContext next = oldCtx.next;
@@ -675,7 +681,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     /**
-     * 检查是否是重复天剑
+     * 检查是否是重复添加
      *
      * @param handler 处理器 handler
      */

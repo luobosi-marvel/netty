@@ -19,6 +19,8 @@ import io.netty.util.internal.UnstableApi;
 
 /**
  * Factory that creates new {@link EventExecutorChooser}s.
+ *
+ * 设计模式：策略模式
  */
 @UnstableApi
 public interface EventExecutorChooserFactory {
